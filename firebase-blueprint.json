@@ -1,0 +1,328 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Public profile of a registered member of Vagos Exitosos",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier of the user",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full name or nickname of the user",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user in the platform",
+          "enum": ["user", "admin"]
+        },
+        "profileImage": {
+          "type": "string",
+          "description": "URL or avatar identifier for user profile",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user account was created"
+        }
+      },
+      "required": ["uid", "displayName", "role", "createdAt"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Private PII data isolated for each user",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier matching the user document",
+          "maxLength": 128
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "WhatsApp telephone number of the user",
+          "minLength": 7,
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp"
+        }
+      },
+      "required": ["uid", "phoneNumber", "createdAt"]
+    },
+    "Publication": {
+      "title": "Publication",
+      "description": "Digital resource shared with the community",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique publication identifier",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the resource",
+          "minLength": 2,
+          "maxLength": 150
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the resource",
+          "minLength": 5,
+          "maxLength": 5000
+        },
+        "type": {
+          "type": "string",
+          "description": "Category of the resource",
+          "enum": ["videojuego", "aplicacion", "pagina_web", "herramienta", "archivo", "script", "otro"]
+        },
+        "platform": {
+          "type": "string",
+          "description": "Platform or subcategory",
+          "maxLength": 60
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "Cover image URL or base64 data",
+          "maxLength": 500000
+        },
+        "imageMode": {
+          "type": "string",
+          "description": "How the image was selected",
+          "enum": ["auto", "manual"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Resource version",
+          "maxLength": 50
+        },
+        "fileSize": {
+          "type": "string",
+          "description": "Approximate file size",
+          "maxLength": 50
+        },
+        "requirements": {
+          "type": "string",
+          "description": "System specifications or requirements",
+          "maxLength": 2000
+        },
+        "downloadLinks": {
+          "type": "string",
+          "description": "JSON stringified map or list of download links",
+          "maxLength": 10000
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Installation or usage instructions",
+          "maxLength": 4000
+        },
+        "scriptCode": {
+          "type": "string",
+          "description": "Code or command for script resources",
+          "maxLength": 15000
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the member who posted",
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the author",
+          "maxLength": 100
+        },
+        "featured": {
+          "type": "string",
+          "description": "Boolean flag string indicating if featured in banner",
+          "enum": ["true", "false"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication status",
+          "enum": ["active", "hidden", "deleted"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["id", "title", "description", "type", "coverImage", "authorId", "authorName", "status", "createdAt", "updatedAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "User report for a problematic resource",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique report ID",
+          "maxLength": 128
+        },
+        "publicationId": {
+          "type": "string",
+          "description": "ID of the reported publication",
+          "maxLength": 128
+        },
+        "publicationTitle": {
+          "type": "string",
+          "description": "Title of the reported publication",
+          "maxLength": 150
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of user who filed the report",
+          "maxLength": 128
+        },
+        "userDisplayName": {
+          "type": "string",
+          "description": "Name of the user reporting",
+          "maxLength": 100
+        },
+        "reportType": {
+          "type": "string",
+          "description": "Type of issue detected",
+          "enum": ["enlace_caido", "archivo_danado", "apk_no_funciona", "error_instalacion", "informacion_incorrecta", "pagina_caida", "posible_malicioso", "otro"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Details regarding the issue",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the report",
+          "enum": ["pendiente", "en_revision", "solucionado", "rechazado"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Optional notes from community administrator",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["id", "publicationId", "publicationTitle", "userId", "userDisplayName", "reportType", "description", "status", "createdAt"]
+    },
+    "Community": {
+      "title": "Community",
+      "description": "Global settings and information for Vagos Exitosos",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Community name",
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Community purpose and summary",
+          "maxLength": 2000
+        },
+        "creator": {
+          "type": "string",
+          "description": "Founder and creator name",
+          "maxLength": 100
+        },
+        "assistantName": {
+          "type": "string",
+          "description": "Name of community AI assistant",
+          "maxLength": 50
+        },
+        "whatsappGroup": {
+          "type": "string",
+          "description": "Invite link to the official WhatsApp Group",
+          "maxLength": 500
+        },
+        "rules": {
+          "type": "string",
+          "description": "Community rules and guidelines",
+          "maxLength": 3000
+        },
+        "version": {
+          "type": "string",
+          "description": "Platform version string",
+          "maxLength": 20
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["name", "creator", "version"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Administrator registry document",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "UID of the admin user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "Admin email address",
+          "maxLength": 150
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when admin status was granted"
+        }
+      },
+      "required": ["uid", "grantedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Public user profiles"
+    },
+    "/users/{userId}/private/account": {
+      "schema": "UserPrivate",
+      "description": "Isolated private account data (PII) including WhatsApp phone number"
+    },
+    "/publications/{publicationId}": {
+      "schema": "Publication",
+      "description": "Shared community digital resources"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Reports of broken links or malicious content"
+    },
+    "/community/info": {
+      "schema": "Community",
+      "description": "Singleton configuration document with WhatsApp links and rules"
+    },
+    "/admins/{adminUid}": {
+      "schema": "Admin",
+      "description": "Privileged admin document mapping"
+    }
+  }
+}

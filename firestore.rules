@@ -1,0 +1,139 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email != null && request.auth.token.email == 'carlosdelgado.neska@gmail.com') ||
+        (request.auth.token.phone_number != null && (request.auth.token.phone_number == '+573009555880' || request.auth.token.phone_number == '3009555880'))
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'createdAt']) &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 60 &&
+        data.role in ['user', 'admin'] &&
+        (!('profileImage' in data) || (data.profileImage is string && data.profileImage.size() <= 1000));
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'phoneNumber', 'createdAt']) &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.phoneNumber is string && data.phoneNumber.size() >= 7 && data.phoneNumber.size() <= 30;
+    }
+
+    function isValidPublication(data) {
+      return data.keys().hasAll(['id', 'title', 'description', 'type', 'coverImage', 'authorId', 'authorName', 'status', 'createdAt', 'updatedAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 150 &&
+        data.description is string && data.description.size() >= 5 && data.description.size() <= 5000 &&
+        data.type in ['videojuego', 'aplicacion', 'pagina_web', 'herramienta', 'archivo', 'script', 'otro'] &&
+        data.coverImage is string && data.coverImage.size() <= 500000 &&
+        data.authorId is string && data.authorId.size() <= 128 &&
+        data.authorName is string && data.authorName.size() <= 100 &&
+        data.status in ['active', 'hidden', 'deleted'];
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['id', 'publicationId', 'publicationTitle', 'userId', 'userDisplayName', 'reportType', 'description', 'status', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.publicationId is string && data.publicationId.size() <= 128 &&
+        data.publicationTitle is string && data.publicationTitle.size() <= 150 &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.userDisplayName is string && data.userDisplayName.size() <= 100 &&
+        data.reportType in ['enlace_caido', 'archivo_danado', 'apk_no_funciona', 'error_instalacion', 'informacion_incorrecta', 'pagina_caida', 'posible_malicioso', 'otro'] &&
+        data.description is string && data.description.size() >= 5 && data.description.size() <= 2000 &&
+        data.status in ['pendiente', 'en_revision', 'solucionado', 'rechazado'];
+    }
+
+    function isValidCommunity(data) {
+      return data.keys().hasAll(['name', 'creator', 'version']) &&
+        data.name is string && data.name.size() <= 100 &&
+        data.creator is string && data.creator.size() <= 100 &&
+        data.version is string && data.version.size() <= 20;
+    }
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().role == 'user';
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId && isValidUser(incoming()) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'profileImage']))
+      );
+      allow delete: if isAdmin();
+
+      // PII Split Subcollection for phone number / account
+      match /private/account {
+        allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow list: if false;
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidUserPrivate(incoming());
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidUserPrivate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['phoneNumber']);
+        allow delete: if isAdmin();
+      }
+    }
+
+    // PUBLICATIONS COLLECTION
+    match /publications/{publicationId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(publicationId) && isValidPublication(incoming()) && incoming().authorId == request.auth.uid && incoming().status == 'active';
+      allow update: if isSignedIn() && isValidId(publicationId) && (
+        isAdmin() ||
+        (
+          request.auth.uid == existing().authorId &&
+          isValidPublication(incoming()) &&
+          incoming().authorId == existing().authorId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'coverImage', 'imageMode', 'version', 'fileSize', 'requirements', 'downloadLinks', 'instructions', 'scriptCode', 'platform', 'featured', 'updatedAt'])
+        )
+      );
+      allow delete: if isSignedIn() && isValidId(publicationId) && (isAdmin() || request.auth.uid == existing().authorId);
+    }
+
+    // REPORTS COLLECTION
+    match /reports/{reportId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && incoming().userId == request.auth.uid && incoming().status == 'pendiente';
+      allow update: if isSignedIn() && isValidId(reportId) && isAdmin() && isValidReport(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // COMMUNITY INFO
+    match /community/{docId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ADMINS REGISTRY
+    match /admins/{adminUid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
